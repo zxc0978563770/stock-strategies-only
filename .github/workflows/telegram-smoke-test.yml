@@ -44,10 +44,12 @@ jobs:
           try:
               with urllib.request.urlopen(req, timeout=30) as resp:
                   body = resp.read().decode("utf-8")
-          except Exception as exc:
-              print(f"Telegram request failed: {exc}", file=sys.stderr)
-              raise
-
+          except urllib.error.HTTPError as exc:
+    print(f"Telegram HTTPError: {exc.code} {exc.read().decode('utf-8')}", file=sys.stderr)
+    raise
+except Exception as exc:
+    print(f"Telegram request failed: {exc}", file=sys.stderr)
+    raise
           data = json.loads(body)
           print(json.dumps({k: data.get(k) for k in ("ok", "description")}, ensure_ascii=False))
           if not data.get("ok"):
