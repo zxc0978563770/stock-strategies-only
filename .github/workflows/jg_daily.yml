@@ -1,0 +1,29 @@
+name: JG Daily Signal
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 每個交易日台灣時間 14:40（收盤後 10 分鐘）
+    - cron: '40 6 * * 1-5'
+
+jobs:
+  run-jg:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install deps
+        run: uv sync
+
+      - name: Run JG strategy
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: uv run python jg_main.py
