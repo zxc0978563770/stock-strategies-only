@@ -3,7 +3,7 @@
 from .sheet import get_gsheet
 
 
-HEADERS = ["stock_id", "name", "high_252", "low", "rebound_done", "first_seen"]
+HEADERS = ["stock_id", "name", "high_60", "low", "rebound_done", "first_seen"]
 
 
 def read_tracker() -> dict:
@@ -35,7 +35,7 @@ def upsert_tracker(records: dict):
         rows.append([
             sid,
             r.get("name", ""),
-            r.get("high_252", ""),
+            r.get("high_60", ""),
             r.get("low", ""),
             r.get("rebound_done", ""),
             r.get("first_seen", ""),
