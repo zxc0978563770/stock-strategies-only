@@ -36,6 +36,7 @@ def main():
 
     new_dips = []
     rebounds = []
+    tracking_list = []
     today = datetime.now().strftime("%Y-%m-%d")
 
     for i, row in enumerate(watchlist, 1):
@@ -62,6 +63,7 @@ def main():
             print(f"[{i}/{len(watchlist)}] {sid} {name} -> REBOUND")
         elif r["action"] == "TRACKING":
             tracker[sid]["low"] = r["low"]
+            tracking_list.append(r)
             print(f"[{i}/{len(watchlist)}] {sid} {name} -> TRACKING（最低 {r['low']}）")
         elif r["action"] == "DONE":
             print(f"[{i}/{len(watchlist)}] {sid} {name} -> DONE（等重新觸發）")
@@ -76,7 +78,7 @@ def main():
     lines = [
         f"📉 *跌深反彈警示* — {today}",
         "",
-        f"掃描：{len(watchlist)} 檔 | 新跌深：{len(new_dips)} 檔 | 反彈成功：{len(rebounds)} 檔",
+        f"掃描：{len(watchlist)} 檔 | 新跌深：{len(new_dips)} 檔 | 反彈成功：{len(rebounds)} 檔 | 追蹤中：{len(tracking_list)} 檔",
         "",
     ]
 
@@ -104,8 +106,23 @@ def main():
             lines.append(f"  現價：{r['close']}")
             lines.append("")
 
-    if not new_dips and not rebounds:
-        lines.append("今日無新跌深或反彈成功的標的。")
+    if tracking_list:
+        lines.append(f"*【追蹤中】{len(tracking_list)} 檔*")
+        for t in tracking_list:
+            lines.append(f"*{t['stock_id']} {t['name']}*")
+            lines.append(f"  60 日高點：{t.get('high_60', '-')}")
+            lines.append(f"  60 日低點：{t.get('low_60', '-')}")
+            lines.append(f"  現價：{t.get('close', '-')}（{t.get('drawdown_pct', '-')}%）")
+            lines.append(f"  尚未收復跌幅一半（{t.get('half_rebound_60', '-')}）")
+            lines.append(f"  參考分批進場：")
+            lines.append(f"    第 1 批（-20%）：{t.get('entry_1', '-')}")
+            lines.append(f"    第 2 批（-25%）：{t.get('entry_2', '-')}")
+            lines.append(f"    第 3 批（-30%）：{t.get('entry_3', '-')}")
+            lines.append(f"    第 4 批（-35%）：{t.get('entry_4', '-')}")
+            lines.append("")
+
+    if not new_dips and not rebounds and not tracking_list:
+        lines.append("今日無新跌深、反彈成功或追蹤中的標的。")
 
     msg = "\n".join(lines)
     print("發送 Telegram...")
