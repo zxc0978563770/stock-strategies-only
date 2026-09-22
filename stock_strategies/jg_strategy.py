@@ -1,11 +1,11 @@
-"""JG 反市場策略
+"""JG 反市場策略（支援自訂目標價）
 
 依《反市場：JG股市操作原理》設計：
 1. 大盤在月線之上（多頭濾鏡）
 2. 個股在 20MA 之上
 3. 逆 KD：K < D（向下交叉）但未跌破前波低點
 4. 逆布林：股價接近布林下軌（距離 < 3%）
-5. 風報比 >= 1:3
+5. 風報比 >= 1:3（若使用者有指定 target_price，以使用者為準）
 """
 
 import pandas as pd
@@ -40,8 +40,16 @@ def find_swing_low(df: pd.DataFrame, lookback: int = 20) -> float:
     return float(recent["low"].min())
 
 
-def evaluate_jg(stock_id: str, name: str = "", market_ok: bool = True) -> dict:
-    """評估一檔股票是否符合 JG 進場條件。"""
+def evaluate_jg(
+    stock_id: str,
+    name: str = "",
+    market_ok: bool = True,
+    target_price: float | None = None,
+) -> dict:
+    """評估一檔股票是否符合 JG 進場條件。
+
+    target_price: 若提供，會用此目標價算風報比（需 >= 停損距離的 3 倍）。
+    """
     result = {
         "stock_id": stock_id,
         "name": name,
@@ -80,7 +88,7 @@ def evaluate_jg(stock_id: str, name: str = "", market_ok: bool = True) -> dict:
             result["risk_notes"].append("股價在 20MA 之下，非多頭")
             return result
 
-        # 條件 3：逆 KD（K < D，向下交叉）
+        # 條件 3：逆 KD（K < D）
         if not (k < d):
             result["risk_notes"].append("KD 未向下交叉，非逆 KD 買點")
             return result
@@ -101,19 +109,35 @@ def evaluate_jg(stock_id: str, name: str = "", market_ok: bool = True) -> dict:
             result["risk_notes"].append("停損距離異常")
             return result
 
-        target_price = close + stop_distance * 3
-        rr = 3.0
+        # 若有自訂目標價，用它；否則用停損距離的 3 倍
+        if target_price and target_price > close:
+            target = float(target_price)
+            rr = (target - close) / stop_distance
+            rr_source = "自訂目標價"
+        else:
+            target = close + stop_distance * 3
+            rr = 3.0
+            rr_source = "系統預設 1:3"
+
+        # 若自訂目標價的風報比 < 3，就不算 BUY（JG 要求至少 1:3）
+        if target_price and rr < 3.0:
+            result["risk_notes"].append(
+                f"自訂目標價 {target:.0f} 的風報比只有 1:{rr:.1f}，未達 1:3"
+            )
+            return result
 
         result.update({
             "action": "BUY",
             "entry_price": round(close, 2),
             "stop_loss_price": round(stop_price, 2),
-            "target_price": round(target_price, 2),
-            "risk_reward_ratio": rr,
+            "target_price": round(target, 2),
+            "risk_reward_ratio": round(rr, 2),
+            "rr_source": rr_source,
             "signals": [
                 "個股在 20MA 之上",
                 f"KD 向下交叉（K={k:.1f}, D={d:.1f}）",
                 "股價接近布林下軌" if near_lower else "股價在布林中線之下",
+                f"風報比 1:{rr:.1f}（{rr_source}）",
             ],
         })
         return result
