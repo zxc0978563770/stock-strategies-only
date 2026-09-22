@@ -47,9 +47,9 @@ def main():
 
         if r["action"] == "DIP":
             new_dips.append(r)
-            tracker[sid] = {
+                tracker[sid] = {
                 "name": name,
-                "high_252": r["high_252"],
+                "high_60": r["high_60"],
                 "low": r["low"],
                 "rebound_done": "FALSE",
                 "first_seen": today,
