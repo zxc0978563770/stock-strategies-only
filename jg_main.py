@@ -51,7 +51,7 @@ def main():
         send_telegram(f"📉 *JG 反市場策略*\n\n{market_note}\n\n大盤空頭，今日不做多。")
         return
 
-       # 3. 逐檔評估
+          # 3. 逐檔評估
     buys = []
     for i, row in enumerate(watchlist, 1):
         sid = str(row["stock_id"])
@@ -62,10 +62,9 @@ def main():
             buys.append(r)
             print(f"[{i}/{len(watchlist)}] {sid} {name} -> BUY")
         else:
-            reasons = " / ".join(r.get("risk_notes", [])) or r["action"]
-            print(f"[{i}/{len(watchlist)}] {sid} {name} -> {r['action']}: {reasons}")
+            reason = " / ".join(r.get("risk_notes", [])) or r.get("action", "SKIP")
+            print(f"[{i}/{len(watchlist)}] {sid} {name} -> {reason}")
         time.sleep(0.3)
-
     # 4. 組訊息
     lines = [
         f"🎯 *JG 反市場策略* — {datetime.now().strftime('%Y-%m-%d')}",
