@@ -47,7 +47,7 @@ def main():
 
         if r["action"] == "DIP":
             new_dips.append(r)
-                tracker[sid] = {
+            tracker[sid] = {
                 "name": name,
                 "high_60": r["high_60"],
                 "low": r["low"],
@@ -63,6 +63,8 @@ def main():
         elif r["action"] == "TRACKING":
             tracker[sid]["low"] = r["low"]
             print(f"[{i}/{len(watchlist)}] {sid} {name} -> TRACKING（最低 {r['low']}）")
+        elif r["action"] == "DONE":
+            print(f"[{i}/{len(watchlist)}] {sid} {name} -> DONE（等重新觸發）")
         else:
             reason = " / ".join(r.get("risk_notes", [])) or r["action"]
             print(f"[{i}/{len(watchlist)}] {sid} {name} -> {reason}")
@@ -82,10 +84,10 @@ def main():
         lines.append("*【新跌深標的】*")
         for d in new_dips:
             lines.append(f"*{d['stock_id']} {d['name']}*")
-            lines.append(f"  252 日高點：{d['high_252']}")
+            lines.append(f"  60 日高點：{d['high_60']}")
+            lines.append(f"  60 日低點：{d.get('low_60', '-')}")
             lines.append(f"  現價：{d['close']}（{d['drawdown_pct']}%）")
-            lines.append(f"  252 日低點：{d.get('low_252', '-')}")
-            lines.append(f"  尚未收復跌幅一半（{d.get('half_rebound_252', '-')}）")
+            lines.append(f"  尚未收復跌幅一半（{d.get('half_rebound_60', '-')}）")
             lines.append(f"  參考分批進場：")
             lines.append(f"    第 1 批（-20%）：{d['entry_1']}")
             lines.append(f"    第 2 批（-25%）：{d['entry_2']}")
