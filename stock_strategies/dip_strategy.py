@@ -102,12 +102,13 @@ def evaluate_dip(stock_id: str, name: str = "", tracked: dict | None = None) -> 
         half_rebound = new_low + drop / 2
         result["half_rebound_price"] = round(half_rebound, 2)
 
-        if close >= half_rebound:
+               if close >= half_rebound:
             result["action"] = "REBOUND"
             result["signals"].append("已從最低點反彈收復跌幅一半")
         else:
             result["action"] = "TRACKING"
             result["risk_notes"].append(f"追蹤中（最低 {new_low:.0f}）")
+            # 補上完整欄位（已經在 result.update 裡有了）
 
         return result
 
