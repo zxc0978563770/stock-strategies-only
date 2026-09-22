@@ -30,14 +30,11 @@ def evaluate_dip(stock_id: str, name: str = "", tracked: dict | None = None) -> 
             result["risk_notes"].append(f"資料不足（僅 {len(px)} 筆）")
             return result
 
-        # 60 日高點（篩選 1）
         high_60 = float(px["high"].iloc[-60:].max())
-        # 60 日低點（篩選 2）
         low_60 = float(px["low"].iloc[-60:].min())
         close = float(px["close"].iloc[-1])
         drawdown = (close - high_60) / high_60
 
-        # 60 日跌幅的一半
         drop_60 = high_60 - low_60
         half_rebound_60 = low_60 + drop_60 / 2
 
@@ -102,13 +99,12 @@ def evaluate_dip(stock_id: str, name: str = "", tracked: dict | None = None) -> 
         half_rebound = new_low + drop / 2
         result["half_rebound_price"] = round(half_rebound, 2)
 
-               if close >= half_rebound:
+        if close >= half_rebound:
             result["action"] = "REBOUND"
             result["signals"].append("已從最低點反彈收復跌幅一半")
         else:
             result["action"] = "TRACKING"
             result["risk_notes"].append(f"追蹤中（最低 {new_low:.0f}）")
-            # 補上完整欄位（已經在 result.update 裡有了）
 
         return result
 
