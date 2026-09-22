@@ -1,7 +1,4 @@
-"""JG 反市場策略主程式
-
-每日掃描 Watchlist，套用 JG 進場條件，推播 Telegram。
-"""
+"""JG 反市場策略主程式（支援 Watchlist 自訂目標價）"""
 
 import os
 import sys
@@ -20,6 +17,17 @@ from stock_strategies.jg_strategy import evaluate_jg, get_market_ok
 
 
 REQUIRED_ENV = ["FINMIND_TOKEN", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"]
+
+
+def _parse_target(row: dict) -> float | None:
+    """從 Watchlist 的 row 讀 target_price，沒有就回 None。"""
+    raw = row.get("target_price", "")
+    if raw is None or str(raw).strip() == "":
+        return None
+    try:
+        return float(str(raw).replace(",", "").strip())
+    except (ValueError, TypeError):
+        return None
 
 
 def main():
@@ -48,8 +56,9 @@ def main():
     for i, row in enumerate(watchlist, 1):
         sid = str(row["stock_id"])
         name = row.get("name", "")
-        print(f"[{i}/{len(watchlist)}] {sid} {name}")
-        r = evaluate_jg(sid, name, market_ok=True)
+        target = _parse_target(row)
+        print(f"[{i}/{len(watchlist)}] {sid} {name} (目標 {target or '未設'})")
+        r = evaluate_jg(sid, name, market_ok=True, target_price=target)
         if r["action"] == "BUY":
             buys.append(r)
         time.sleep(0.3)
@@ -69,8 +78,11 @@ def main():
         for b in buys:
             lines.append(f"*{b['stock_id']} {b['name']}*")
             lines.append(f"  進場：{b['entry_price']}")
-            lines.append(f"  停損：{b['stop_loss_price']}（風報比 1:{b['risk_reward_ratio']}）")
-            lines.append(f"  停利：{b['target_price']}")
+            lines.append(f"  停損：{b['stop_loss_price']}")
+            lines.append(
+                f"  停利：{b['target_price']}（風報比 1:{b['risk_reward_ratio']}，"
+                f"{b.get('rr_source', '')}）"
+            )
             for s in b["signals"]:
                 lines.append(f"  ✓ {s}")
             lines.append("")
