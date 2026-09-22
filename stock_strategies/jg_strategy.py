@@ -85,9 +85,11 @@ def evaluate_jg(
             result["risk_notes"].append(f"股價 {close:.1f} 在 20MA {ma20:.1f} 之下")
             return result
 
-                # 條件 3：KD 在低檔（K < 40，嚴格版）
-        if not (k < 40):
-            result["risk_notes"].append(f"KD 未在低檔（K={k:.0f}，需 < 40）")
+         # 條件 3：JG 逆 KD 或低檔（K < D 或 K < 40）
+        if not (k < d or k < 40):
+            result["risk_notes"].append(
+                f"未達逆 KD（K={k:.0f}, D={d:.0f}，需 K<D 或 K<40）"
+            )
             return result
 
         # 條件 4：逆布林（距下軌 < 5% 或在中線之下）
