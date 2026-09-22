@@ -1,11 +1,11 @@
-"""JG 反市場策略（支援自訂目標價）
+"""JG 反市場策略（放寬版 KD）
 
-依《反市場：JG股市操作原理》設計：
+依《反市場：JG股市操作原理》設計，但 KD 條件放寬：
 1. 大盤在月線之上（多頭濾鏡）
 2. 個股在 20MA 之上
-3. 逆 KD：K < D（向下交叉）但未跌破前波低點
-4. 逆布林：股價接近布林下軌（距離 < 3%）
-5. 風報比 >= 1:3（若使用者有指定 target_price，以使用者為準）
+3. KD 在低檔（K < 40），不限交叉方向
+4. 逆布林：股價接近布林下軌（距離 < 5%）或在中線之下
+5. 風報比 >= 1:3
 """
 
 import pandas as pd
@@ -46,10 +46,7 @@ def evaluate_jg(
     market_ok: bool = True,
     target_price: float | None = None,
 ) -> dict:
-    """評估一檔股票是否符合 JG 進場條件。
-
-    target_price: 若提供，會用此目標價算風報比（需 >= 停損距離的 3 倍）。
-    """
+    """評估一檔股票是否符合 JG 進場條件（KD 放寬版）。"""
     result = {
         "stock_id": stock_id,
         "name": name,
@@ -85,20 +82,22 @@ def evaluate_jg(
 
         # 條件 2：個股在 20MA 之上
         if close < ma20:
-            result["risk_notes"].append("股價在 20MA 之下，非多頭")
+            result["risk_notes"].append(f"股價 {close:.1f} 在 20MA {ma20:.1f} 之下")
             return result
 
-        # 條件 3：逆 KD（K < D）
-        if not (k < d):
-            result["risk_notes"].append("KD 未向下交叉，非逆 KD 買點")
+        # 條件 3：KD 在低檔（K < 40，放寬版）
+        if not (k < 40):
+            result["risk_notes"].append(f"KD 未在低檔（K={k:.0f}，需 < 40）")
             return result
 
-        # 條件 4：逆布林（接近下軌）
+        # 條件 4：逆布林（距下軌 < 5% 或在中線之下）
         dist_to_lower = (close - bb_lower) / bb_lower
-        near_lower = 0 < dist_to_lower < 0.03
+        near_lower = 0 < dist_to_lower < 0.05
         below_mid = close < bb_mid
         if not (near_lower or below_mid):
-            result["risk_notes"].append("股價未接近布林下軌")
+            result["risk_notes"].append(
+                f"股價未接近布林下軌（距下軌 {dist_to_lower*100:.1f}%）"
+            )
             return result
 
         # 條件 5：風報比
@@ -119,10 +118,10 @@ def evaluate_jg(
             rr = 3.0
             rr_source = "系統預設 1:3"
 
-        # 若自訂目標價的風報比 < 3，就不算 BUY（JG 要求至少 1:3）
+        # 若自訂目標價的風報比 < 3，就不算 BUY
         if target_price and rr < 3.0:
             result["risk_notes"].append(
-                f"自訂目標價 {target:.0f} 的風報比只有 1:{rr:.1f}，未達 1:3"
+                f"自訂目標 {target:.0f} 的風報比只有 1:{rr:.1f}，未達 1:3"
             )
             return result
 
@@ -135,7 +134,7 @@ def evaluate_jg(
             "rr_source": rr_source,
             "signals": [
                 "個股在 20MA 之上",
-                f"KD 向下交叉（K={k:.1f}, D={d:.1f}）",
+                f"KD 低檔（K={k:.0f}, D={d:.0f}）",
                 "股價接近布林下軌" if near_lower else "股價在布林中線之下",
                 f"風報比 1:{rr:.1f}（{rr_source}）",
             ],
