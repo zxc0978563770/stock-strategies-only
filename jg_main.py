@@ -51,16 +51,19 @@ def main():
         send_telegram(f"📉 *JG 反市場策略*\n\n{market_note}\n\n大盤空頭，今日不做多。")
         return
 
-    # 3. 逐檔評估
+       # 3. 逐檔評估
     buys = []
     for i, row in enumerate(watchlist, 1):
         sid = str(row["stock_id"])
         name = row.get("name", "")
         target = _parse_target(row)
-        print(f"[{i}/{len(watchlist)}] {sid} {name} (目標 {target or '未設'})")
         r = evaluate_jg(sid, name, market_ok=True, target_price=target)
         if r["action"] == "BUY":
             buys.append(r)
+            print(f"[{i}/{len(watchlist)}] {sid} {name} -> BUY")
+        else:
+            reasons = " / ".join(r.get("risk_notes", [])) or r["action"]
+            print(f"[{i}/{len(watchlist)}] {sid} {name} -> {r['action']}: {reasons}")
         time.sleep(0.3)
 
     # 4. 組訊息
