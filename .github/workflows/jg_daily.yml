@@ -3,10 +3,10 @@ name: JG Daily Signal
 on:
   workflow_dispatch:
   schedule:
-    # 台灣時間 10:00（UTC 02:00）
+    # 台灣時間 10:00（UTC 02:00）盤中快照
     - cron: '0 2 * * 1-5'
-    # 台灣時間 13:00（UTC 05:00）
-    - cron: '0 5 * * 1-5'
+    # 台灣時間 14:40（UTC 06:40）盤後正式選股
+    - cron: '40 6 * * 1-5'
 
 jobs:
   run-jg:
