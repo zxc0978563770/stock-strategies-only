@@ -20,6 +20,48 @@ def send_telegram(text: str):
         print(f"Telegram 送失敗: {r.text}", file=sys.stderr)
 
 
+def send_telegram_jg(text: str, max_len: int = 4000):
+    """用 JG 專用的 Bot 發送訊息（自動分段，避免超過 Telegram 4096 字元上限）。"""
+    import time as _time
+
+    token = os.environ.get("JG_TELEGRAM_BOT_TOKEN")
+    chat_id = os.environ.get("JG_TELEGRAM_CHAT_ID")
+
+    if not token or not chat_id:
+        print("缺少 JG_TELEGRAM_BOT_TOKEN 或 JG_TELEGRAM_CHAT_ID，跳過 JG 推播")
+        return
+
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+
+    chunks = []
+    current = ""
+    for line in text.split("\n"):
+        if len(current) + len(line) + 1 > max_len:
+            chunks.append(current)
+            current = line
+        else:
+            current = current + "\n" + line if current else line
+    if current:
+        chunks.append(current)
+
+    print(f"訊息共 {len(text)} 字元，分成 {len(chunks)} 段發送")
+
+    for i, chunk in enumerate(chunks, 1):
+        try:
+            resp = requests.post(url, json={
+                "chat_id": chat_id,
+                "text": chunk,
+                "parse_mode": "Markdown",
+            }, timeout=30)
+            if resp.status_code != 200:
+                print(f"第 {i} 段發送失敗：{resp.status_code} {resp.text[:200]}")
+            else:
+                print(f"第 {i} 段發送成功")
+        except Exception as e:
+            print(f"第 {i} 段發送錯誤: {e}")
+        _time.sleep(1)
+
+
 def _trend_emoji(chg: float) -> str:
     if chg > 3:
         return "🔥"
@@ -31,7 +73,6 @@ def _trend_emoji(chg: float) -> str:
 
 
 def _format_stock_detail(s: dict, show_trend: bool = True) -> list[str]:
-    """格式化單檔股票的詳細資訊"""
     c = s.get("components", {})
     t = s.get("trend", {})
     lines = []
@@ -52,16 +93,12 @@ def _format_stock_detail(s: dict, show_trend: bool = True) -> list[str]:
             f"{_trend_emoji(t.get('chg_5d', 0))} 5日{t.get('chg_5d', 0):+.1f}% | 20日{t.get('chg_20d', 0):+.1f}% | "
             f"距高點{t.get('pct_from_high', 0):.0f}% | {ma_status} | {vol_note}"
         )
-    lines.append(
-        f"📌 *明日開盤進場* | 參考價 {s['entry_price']}"
-    )
+    lines.append(f"📌 *明日開盤進場* | 參考價 {s['entry_price']}")
     lines.append(
         f"停損 {s['stop_loss_price']} (-{CONFIG['stop_loss']*100:.0f}%) / "
         f"目標 {s['target_price']} (+{CONFIG['target_return']*100:.0f}%)"
     )
-    lines.append(
-        f"風報比 1:{s['risk_reward_ratio']} | 建議部位 {s['position_size_pct']}%"
-    )
+    lines.append(f"風報比 1:{s['risk_reward_ratio']} | 建議部位 {s['position_size_pct']}%")
     lines.append(
         f"基本面{fund} | 技術分 {c.get('tech_score', 'N/A')} | 勝率 {wr} ({c.get('backtest_samples', 0)}次)"
     )
@@ -73,7 +110,6 @@ def _format_stock_detail(s: dict, show_trend: bool = True) -> list[str]:
 
 
 def _explain_why(s: dict) -> str:
-    """解釋為什麼是 BUY / WATCH / SKIP"""
     c = s.get("components", {})
     reasons = []
     if not c.get("fundamental_pass"):
@@ -88,7 +124,6 @@ def _explain_why(s: dict) -> str:
 
 
 def _sector_summary(signals: list[dict], watchlist: list[dict]) -> list[str]:
-    """類股強弱分析"""
     cat_map = {str(w["stock_id"]): w.get("category", "其他") for w in watchlist}
     sectors = {}
     for s in signals:
@@ -123,7 +158,6 @@ def _sector_summary(signals: list[dict], watchlist: list[dict]) -> list[str]:
 
 
 def _market_sentiment(signals: list[dict]) -> str:
-    """判斷市場氛圍"""
     valid = [s for s in signals if s.get("trend")]
     if not valid:
         return "無法判斷"
@@ -148,7 +182,6 @@ def format_messages(
     market: dict = None,
     night_note: str = None,
 ) -> list[str]:
-    """產生多則 Telegram 訊息"""
     buys = [s for s in signals if s.get("action") == "BUY"]
     watches = [s for s in signals if s.get("action") == "WATCH"]
     skips = [s for s in signals if s.get("action") in ("SKIP", "ERROR")]
@@ -156,7 +189,6 @@ def format_messages(
     total = len(signals)
     messages = []
 
-    # === 第一則：市場總覽 + 類股強弱 ===
     msg1 = []
     msg1.append(f"📊 *V3.0 每日選股報告* {today}")
     msg1.append(f"掃描 {total} 檔 | BUY {len(buys)} | WATCH {len(watches)} | SKIP {len(skips)}")
@@ -199,7 +231,6 @@ def format_messages(
     )
     messages.append("\n".join(msg1))
 
-    # === 第二則：BUY 詳細 ===
     msg2 = []
     if buys:
         msg2.append(f"🟢 *BUY — 建議進場 ({len(buys)})*")
@@ -232,7 +263,6 @@ def format_messages(
             msg2.append("")
     messages.append("\n".join(msg2))
 
-    # === 第三則：操作建議總結 ===
     msg3 = []
     msg3.append("🧠 *今日操作建議*")
     msg3.append("")
@@ -281,7 +311,6 @@ def format_messages(
     msg3.append("_以上為系統自動分析，僅供參考，投資決策請自行判斷_")
     messages.append("\n".join(msg3))
 
-    # === 第四則：量價深度解析 (V3.1) ===
     msg4 = _format_deep_analysis(signals, today)
     messages.append(msg4)
 
@@ -289,7 +318,6 @@ def format_messages(
 
 
 def _format_deep_analysis(signals: list[dict], today: str) -> str:
-    """量價陣列深度解析（V3.1）"""
     lines = [f"🔬 *量價深度解析* {today}", ""]
 
     buys = [s for s in signals if s.get("action") == "BUY"]
@@ -346,7 +374,6 @@ def _format_deep_analysis(signals: list[dict], today: str) -> str:
 
 
 def _format_volume_block(s: dict) -> list[str]:
-    """格式化單檔股票的量價區塊"""
     c = s.get("components", {})
     patterns = c.get("volume_patterns", [])
     details = c.get("volume_details", {})
@@ -368,18 +395,12 @@ def _format_volume_block(s: dict) -> list[str]:
 
 
 def format_premarket(night: dict | None, signals: list[dict]) -> str:
-    """夜盤盤前快報：夜盤方向預判 + 疊加昨日 BUY/WATCH 訊號。
-
-    night   — night_session.get_night_session() 的回傳（可能為 None）
-    signals — sheet.read_latest_signals() 的回傳（Sheet 扁平 dict，最新在最前）
-    """
     from .night_session import tailwind_tag, bias_guidance
 
     today = datetime.now()
     wd = "一二三四五六日"[today.weekday()]
     lines = [f"🌙 *夜盤盤前快報* {today.strftime('%Y/%m/%d')} (週{wd})", ""]
 
-    # === 夜盤方向預判 ===
     if night:
         lines.append(
             f"{night['emoji']} *台指期夜盤 {night['pct']:+.2f}% "
@@ -393,7 +414,6 @@ def format_premarket(night: dict | None, signals: list[dict]) -> str:
         lines.append("⚠️ 夜盤資料暫時取不到，今日盤前以個股訊號為主")
     lines.append("")
 
-    # === 疊加昨日訊號 ===
     bias = night["bias"] if night else "flat"
     tag = tailwind_tag(bias)
     actionable = [
@@ -401,7 +421,7 @@ def format_premarket(night: dict | None, signals: list[dict]) -> str:
         if str(s.get("action", "")).upper() in ("BUY", "WATCH")
     ]
     if actionable:
-        latest_day = actionable[0].get("date", "")  # 最新在最前
+        latest_day = actionable[0].get("date", "")
         batch = [s for s in actionable if s.get("date", "") == latest_day]
         buys = [s for s in batch if str(s["action"]).upper() == "BUY"]
         watches = [s for s in batch if str(s["action"]).upper() == "WATCH"]
@@ -423,25 +443,4 @@ def format_premarket(night: dict | None, signals: list[dict]) -> str:
 
 
 def format_message(signals: list[dict]) -> str:
-    """向後相容"""
     return format_messages(signals)[0]
-    
-
-def send_telegram_jg(text: str):
-    """用 JG 專用的 Bot 發送訊息（JG + Dip 共用）。"""
-    token = os.environ.get("JG_TELEGRAM_BOT_TOKEN")
-    chat_id = os.environ.get("JG_TELEGRAM_CHAT_ID")
-
-    if not token or not chat_id:
-        print("缺少 JG_TELEGRAM_BOT_TOKEN 或 JG_TELEGRAM_CHAT_ID，跳過 JG 推播")
-        return
-
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
-    try:
-        requests.post(url, json={
-            "chat_id": chat_id,
-            "text": text,
-            "parse_mode": "Markdown",
-        }, timeout=30)
-    except Exception as e:
-        print(f"JG Telegram 發送失敗: {e}")
