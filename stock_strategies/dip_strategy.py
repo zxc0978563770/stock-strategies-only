@@ -38,7 +38,7 @@ def evaluate_dip(stock_id: str, name: str = "", tracked: dict | None = None) -> 
         drop_60 = high_60 - low_60
         half_rebound_60 = low_60 + drop_60 / 2
 
-        result.update({
+            result.update({
             "high_60": round(high_60, 2),
             "low_60": round(low_60, 2),
             "half_rebound_60": round(half_rebound_60, 2),
@@ -48,6 +48,7 @@ def evaluate_dip(stock_id: str, name: str = "", tracked: dict | None = None) -> 
             "entry_2": round(high_60 * 0.75, 2),
             "entry_3": round(high_60 * 0.70, 2),
             "entry_4": round(high_60 * 0.65, 2),
+            "entry_5": round(high_60 * 0.60, 2),
         })
 
         # ── 情境 A：還沒觸發過 ──
