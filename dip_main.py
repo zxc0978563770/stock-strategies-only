@@ -12,7 +12,7 @@ except ImportError:
     pass
 
 from stock_strategies.sheet import read_watchlist
-from stock_strategies.notify import send_telegram
+from stock_strategies.notify import send_telegram_jg
 from stock_strategies.dip_strategy import evaluate_dip
 from stock_strategies.dip_tracker import read_tracker, upsert_tracker
 
@@ -126,10 +126,9 @@ def main():
     if not new_dips and not rebounds and not tracking_list:
         lines.append("今日無新跌深、反彈成功或追蹤中的標的。")
 
-    msg = "\n".join(lines)
-    print("發送 Telegram...")
-    send_telegram(msg)
-    print("完成")
+       msg = "\n".join(lines)
+    print("發送 JG Telegram...")
+    send_telegram_jg(msg)
 
 
 if __name__ == "__main__":
