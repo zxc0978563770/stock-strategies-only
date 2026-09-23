@@ -95,6 +95,7 @@ def main():
             lines.append(f"    第 2 批（-25%）：{d['entry_2']}")
             lines.append(f"    第 3 批（-30%）：{d['entry_3']}")
             lines.append(f"    第 4 批（-35%）：{d['entry_4']}")
+            lines.append(f"    第 5 批（-40%）：{d['entry_5']}")
             lines.append("")
 
     if rebounds:
@@ -119,6 +120,7 @@ def main():
             lines.append(f"    第 2 批（-25%）：{t.get('entry_2', '-')}")
             lines.append(f"    第 3 批（-30%）：{t.get('entry_3', '-')}")
             lines.append(f"    第 4 批（-35%）：{t.get('entry_4', '-')}")
+            lines.append(f"    第 5 批（-40%）：{t.get('entry_5', '-')}")
             lines.append("")
 
     if not new_dips and not rebounds and not tracking_list:
