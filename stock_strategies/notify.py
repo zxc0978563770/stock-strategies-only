@@ -425,3 +425,23 @@ def format_premarket(night: dict | None, signals: list[dict]) -> str:
 def format_message(signals: list[dict]) -> str:
     """向後相容"""
     return format_messages(signals)[0]
+    
+
+def send_telegram_jg(text: str):
+    """用 JG 專用的 Bot 發送訊息（JG + Dip 共用）。"""
+    token = os.environ.get("JG_TELEGRAM_BOT_TOKEN")
+    chat_id = os.environ.get("JG_TELEGRAM_CHAT_ID")
+
+    if not token or not chat_id:
+        print("缺少 JG_TELEGRAM_BOT_TOKEN 或 JG_TELEGRAM_CHAT_ID，跳過 JG 推播")
+        return
+
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    try:
+        requests.post(url, json={
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": "Markdown",
+        }, timeout=30)
+    except Exception as e:
+        print(f"JG Telegram 發送失敗: {e}")
