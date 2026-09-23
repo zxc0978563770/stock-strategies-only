@@ -126,9 +126,10 @@ def main():
     if not new_dips and not rebounds and not tracking_list:
         lines.append("今日無新跌深、反彈成功或追蹤中的標的。")
 
-       msg = "\n".join(lines)
+    msg = "\n".join(lines)
     print("發送 JG Telegram...")
     send_telegram_jg(msg)
+    print("完成")
 
 
 if __name__ == "__main__":
