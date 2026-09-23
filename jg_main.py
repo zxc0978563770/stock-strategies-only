@@ -12,7 +12,7 @@ except ImportError:
     pass
 
 from stock_strategies.sheet import read_watchlist
-from stock_strategies.notify import send_telegram
+from stock_strategies.notify import send_telegram_jg
 from stock_strategies.jg_strategy import evaluate_jg, get_market_ok
 
 
@@ -89,10 +89,9 @@ def main():
                 lines.append(f"  ✓ {s}")
             lines.append("")
 
-    msg = "\n".join(lines)
-    print("發送 Telegram...")
-    send_telegram(msg)
-    print("完成")
+       msg = "\n".join(lines)
+    print("發送 JG Telegram...")
+    send_telegram_jg(msg)
 
 
 if __name__ == "__main__":
