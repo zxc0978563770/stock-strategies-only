@@ -7,7 +7,6 @@ HEADERS = ["stock_id", "name", "high_60", "low", "rebound_done", "first_seen"]
 
 
 def read_tracker() -> dict:
-    """讀取所有追蹤記錄，回傳 {stock_id: {...}}"""
     sh = get_gsheet()
     try:
         ws = sh.worksheet("DipTracker")
@@ -18,7 +17,6 @@ def read_tracker() -> dict:
 
 
 def upsert_tracker(records: dict):
-    """整張 DipTracker 清空重寫。"""
     sh = get_gsheet()
     try:
         ws = sh.worksheet("DipTracker")
@@ -34,10 +32,10 @@ def upsert_tracker(records: dict):
     for sid, r in records.items():
         rows.append([
             sid,
-            r.get("name", ""),
-            r.get("high_60", ""),
-            r.get("low", ""),
-            r.get("rebound_done", ""),
-            r.get("first_seen", ""),
+            r.get("name") or "",
+            r.get("high_60") or "",
+            r.get("low") or "",
+            r.get("rebound_done") or "FALSE",
+            r.get("first_seen") or "",
         ])
     ws.append_rows(rows)
